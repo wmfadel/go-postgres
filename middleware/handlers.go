@@ -132,6 +132,85 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(res)
 }
 
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	// get the userid from the request params, key is "id"
+	params := mux.Vars(r)
+
+	// convert the id type from string to int
+	id, err := strconv.Atoi(params["id"])
+
+	if err != nil {
+		log.Fatalf("Unable to convert the string into int.  %v", err)
+	}
+
+	// call the getUser function with user id to retrieve a single user
+	_, err = deleteUser(int64(id))
+	var res response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		res = response{
+			Data:    nil,
+			Message: err.Error(),
+		}
+	} else {
+		w.WriteHeader(http.StatusOK)
+		res = response{
+			Data:    id,
+			Message: "User Deleted",
+		}
+	}
+
+	// send the response
+	json.NewEncoder(w).Encode(res)
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "PUT")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// get the userid from the request params, key is "id"
+	params := mux.Vars(r)
+
+	// convert the id type from string to int
+	id, err := strconv.Atoi(params["id"])
+
+	if err != nil {
+		log.Fatalf("Unable to convert the string into int.  %v", err)
+	}
+
+	// create an empty user of type models.User
+	var user models.User
+
+	// decode the json request to user
+	err = json.NewDecoder(r.Body).Decode(&user)
+
+	if err != nil {
+		log.Fatalf("Unable to decode the request body.  %v", err)
+	}
+
+	// call update user to update the user
+	updatedRows := updateUser(int64(id), user)
+
+	// format the message string
+	msg := fmt.Sprintf("User updated successfully. Total rows/record affected %v", updatedRows)
+
+	// format the response message
+	res := response{
+		Data:    int64(id),
+		Message: msg,
+	}
+
+	// send the response
+	json.NewEncoder(w).Encode(res)
+}
+
 func createUser(user *models.User) int64 {
 	db := createConnection()
 
@@ -190,4 +269,55 @@ func getUser(Id int64) (models.User, error) {
 
 	// return empty user on error
 	return user, err
+}
+
+func deleteUser(Id int64) (int64, error) {
+	db := createConnection()
+	defer db.Close()
+	res, err := db.Exec(`DELETE FROM users WHERE userid=$1`, Id)
+
+	if err != nil {
+		return 0, err
+	}
+
+	rowsCount, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+
+	if rowsCount != 1 {
+		return 0, errors.New("failed to delete user")
+	}
+
+	return Id, nil
+}
+
+func updateUser(id int64, user models.User) int64 {
+
+	// create the postgres db connection
+	db := createConnection()
+
+	// close the db connection
+	defer db.Close()
+
+	// create the update sql query
+	sqlStatement := `UPDATE users SET name=$2, location=$3, age=$4 WHERE userid=$1`
+
+	// execute the sql statement
+	res, err := db.Exec(sqlStatement, id, user.Name, user.Location, user.Age)
+
+	if err != nil {
+		log.Fatalf("Unable to execute the query. %v", err)
+	}
+
+	// check how many rows affected
+	rowsAffected, err := res.RowsAffected()
+
+	if err != nil {
+		log.Fatalf("Error while checking the affected rows. %v", err)
+	}
+
+	fmt.Printf("Total rows/record affected %v", rowsAffected)
+
+	return rowsAffected
 }

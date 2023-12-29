@@ -173,9 +173,9 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func createUser(user *models.User) int64 {
 	user.HashPassword()
-	sqlStatement := `INSERT INTO users (name, password, location, age) VALUES ($1, $2, $3, $4) RETURNING userid`
+	sqlStatement := `INSERT INTO users (name, password, location, age, email) VALUES ($1, $2, $3, $4, $5) RETURNING userid`
 	var userid int64
-	err := database.Instance.QueryRow(sqlStatement, user.Name, user.Password, user.Location, user.Age).Scan(&userid)
+	err := database.Instance.QueryRow(sqlStatement, user.Name, user.Password, user.Location, user.Age, user.Email).Scan(&userid)
 	if err != nil {
 		log.Fatalf("Failed to create user.  %v", err)
 	}
@@ -185,8 +185,8 @@ func createUser(user *models.User) int64 {
 
 func updateUser(id int64, user models.User) int64 {
 	user.HashPassword()
-	sqlStatement := `UPDATE users SET name=$2, password=$3, location=$4, age=$5 WHERE userid=$1`
-	res, err := database.Instance.Exec(sqlStatement, id, user.Name, user.Password, user.Location, user.Age)
+	sqlStatement := `UPDATE users SET name=$2, password=$3, location=$4, age=$5, email-$6 WHERE userid=$1`
+	res, err := database.Instance.Exec(sqlStatement, id, user.Name, user.Password, user.Location, user.Age, user.Email)
 
 	if err != nil {
 		log.Fatalf("Unable to execute the query. %v", err)
@@ -205,7 +205,7 @@ func updateUser(id int64, user models.User) int64 {
 
 func getAllUsers() ([]models.User, error) {
 
-	rows, err := database.Instance.Query(`SELECT userid, name, age, location FROM users`)
+	rows, err := database.Instance.Query(`SELECT userid, name, age, location, email FROM users`)
 	if err != nil {
 		log.Fatal("Failed to query users")
 	}
@@ -215,7 +215,7 @@ func getAllUsers() ([]models.User, error) {
 	for rows.Next() {
 		var user models.User
 
-		err = rows.Scan(&user.ID, &user.Name, &user.Age, &user.Location)
+		err = rows.Scan(&user.ID, &user.Name, &user.Age, &user.Location, &user.Email)
 		if err != nil {
 			log.Fatalf("Unable to scan the row. %v", err)
 		}
@@ -227,10 +227,10 @@ func getAllUsers() ([]models.User, error) {
 
 func getUser(Id int64) (models.User, error) {
 
-	row := database.Instance.QueryRow(`SELECT userid, name, age, location FROM users WHERE userid = $1`, Id)
+	row := database.Instance.QueryRow(`SELECT userid, name, age,location, email  FROM users WHERE userid = $1`, Id)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Location)
+	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Location, &user.Email)
 
 	switch err {
 	case sql.ErrNoRows:

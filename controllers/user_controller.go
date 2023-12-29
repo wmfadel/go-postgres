@@ -15,22 +15,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// response format
-type response struct {
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
-}
-
-type RequestError struct {
-	StatusCode int
-
-	Err error
-}
-
-func (r *RequestError) Error() string {
-	return fmt.Sprintf("status %d: err %v", r.StatusCode, r.Err)
-}
-
 func CreateUser(rw http.ResponseWriter, r *http.Request) {
 	fmt.Println("Handling Create User POST request")
 	rw.Header().Set("Context-Type", "application/x-www-form-urlencoded")
@@ -48,7 +32,7 @@ func CreateUser(rw http.ResponseWriter, r *http.Request) {
 
 	userid := createUser(&user)
 
-	response := response{
+	response := models.Response{
 		Data:    userid,
 		Message: "User Created Successfully",
 	}
@@ -66,7 +50,7 @@ func GetAllUsers(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal("Failed to get users")
 	}
-	response := response{
+	response := models.Response{
 		Data:    users,
 		Message: "Ok",
 	}
@@ -89,16 +73,16 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	// call the getUser function with user id to retrieve a single user
 	user, err := getUser(int64(id))
-	var res response
+	var res models.Response
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		res = response{
+		res = models.Response{
 			Data:    nil,
 			Message: err.Error(),
 		}
 	} else {
 		w.WriteHeader(http.StatusOK)
-		res = response{
+		res = models.Response{
 			Data:    user,
 			Message: "OK",
 		}
@@ -125,16 +109,16 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	// call the getUser function with user id to retrieve a single user
 	_, err = deleteUser(int64(id))
-	var res response
+	var res models.Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		res = response{
+		res = models.Response{
 			Data:    nil,
 			Message: err.Error(),
 		}
 	} else {
 		w.WriteHeader(http.StatusOK)
-		res = response{
+		res = models.Response{
 			Data:    id,
 			Message: "User Deleted",
 		}
@@ -178,7 +162,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	msg := fmt.Sprintf("User updated successfully. Total rows/record affected %v", updatedRows)
 
 	// format the response message
-	res := response{
+	res := models.Response{
 		Data:    int64(id),
 		Message: msg,
 	}

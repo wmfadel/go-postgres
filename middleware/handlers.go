@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"go-postgres/database"
 	"go-postgres/models"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
@@ -30,29 +29,6 @@ type RequestError struct {
 
 func (r *RequestError) Error() string {
 	return fmt.Sprintf("status %d: err %v", r.StatusCode, r.Err)
-}
-
-func createConnection() *sql.DB {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Failed to open .env", err)
-	}
-
-	connectionString := os.Getenv("POSTGRES_URL")
-
-	db, err := sql.Open("postgres", connectionString)
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Connection established")
-	return db
 }
 
 func CreateUser(rw http.ResponseWriter, r *http.Request) {
@@ -212,13 +188,10 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func createUser(user *models.User) int64 {
-	db := createConnection()
-
-	defer db.Close()
 
 	sqlStatement := `INSERT INTO users (name, location, age) VALUES ($1, $2, $3) RETURNING userid`
 	var userid int64
-	err := db.QueryRow(sqlStatement, user.Name, user.Location, user.Age).Scan(&userid)
+	err := database.Instance.QueryRow(sqlStatement, user.Name, user.Location, user.Age).Scan(&userid)
 	if err != nil {
 		log.Fatalf("Failed to create user.  %v", err)
 	}
@@ -227,9 +200,8 @@ func createUser(user *models.User) int64 {
 }
 
 func getAllUsers() ([]models.User, error) {
-	db := createConnection()
-	defer db.Close()
-	rows, err := db.Query(`SELECT * FROM users`)
+
+	rows, err := database.Instance.Query(`SELECT * FROM users`)
 	if err != nil {
 		log.Fatal("Failed to query users")
 	}
@@ -250,9 +222,8 @@ func getAllUsers() ([]models.User, error) {
 }
 
 func getUser(Id int64) (models.User, error) {
-	db := createConnection()
-	defer db.Close()
-	row := db.QueryRow(`SELECT * FROM users WHERE userid = $1`, Id)
+
+	row := database.Instance.QueryRow(`SELECT * FROM users WHERE userid = $1`, Id)
 
 	var user models.User
 	err := row.Scan(&user.ID, &user.Name, &user.Age, &user.Location)
@@ -272,9 +243,8 @@ func getUser(Id int64) (models.User, error) {
 }
 
 func deleteUser(Id int64) (int64, error) {
-	db := createConnection()
-	defer db.Close()
-	res, err := db.Exec(`DELETE FROM users WHERE userid=$1`, Id)
+
+	res, err := database.Instance.Exec(`DELETE FROM users WHERE userid=$1`, Id)
 
 	if err != nil {
 		return 0, err
@@ -294,23 +264,13 @@ func deleteUser(Id int64) (int64, error) {
 
 func updateUser(id int64, user models.User) int64 {
 
-	// create the postgres db connection
-	db := createConnection()
-
-	// close the db connection
-	defer db.Close()
-
-	// create the update sql query
 	sqlStatement := `UPDATE users SET name=$2, location=$3, age=$4 WHERE userid=$1`
-
-	// execute the sql statement
-	res, err := db.Exec(sqlStatement, id, user.Name, user.Location, user.Age)
+	res, err := database.Instance.Exec(sqlStatement, id, user.Name, user.Location, user.Age)
 
 	if err != nil {
 		log.Fatalf("Unable to execute the query. %v", err)
 	}
 
-	// check how many rows affected
 	rowsAffected, err := res.RowsAffected()
 
 	if err != nil {

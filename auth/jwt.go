@@ -12,23 +12,26 @@ import (
 var jwtKey = []byte("supersecretkey")
 
 type JWTClaim struct {
-	UserId string `json:"userid"`
+	UserId int64  `json:"userid"`
 	Name   string `json:"name"`
+	Email  string `json:"email"`
 	jwt.StandardClaims
 }
 
-func GenerateJWT(userid string, name string) (tokenString string, err error) {
+func GenerateJWT(userid int64, name string, email string) (tokenString string, expiresAt int64, err error) {
 	tokenDuration, err := utils.GetJWTExpiaryTime()
 	if err != nil {
 		tokenDuration = 1
-		fmt.Println("Failed to get jwt duration using default valeu 1")
+		fmt.Println("Failed to get jwt duration using default value 1")
 	}
 	expirationTime := time.Now().Add(time.Duration(tokenDuration) * time.Hour)
+	expiresAt = expirationTime.Unix()
 	claims := &JWTClaim{
 		UserId: userid,
 		Name:   name,
+		Email:  email,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+			ExpiresAt: expiresAt,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

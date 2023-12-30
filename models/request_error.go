@@ -3,9 +3,8 @@ package models
 import "fmt"
 
 type RequestError struct {
-	StatusCode int
-
-	Err error
+	StatusCode int    `json:"code"`
+	Err        string `json:"error"`
 }
 
 func (r *RequestError) Error() string {

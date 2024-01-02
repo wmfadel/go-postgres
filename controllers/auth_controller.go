@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"go-postgres/auth"
 	"go-postgres/models"
 	UserService "go-postgres/services"
@@ -36,7 +35,6 @@ func Login(rw http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(rw).Encode(res)
 		return
 	}
-	fmt.Println("user to be checked", user.Password)
 	err = user.CheckPassword(loginRequest.Password)
 	if err != nil {
 		rw.WriteHeader(http.StatusBadRequest)

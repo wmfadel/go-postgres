@@ -1,9 +1,15 @@
 package models
 
-import "golang.org/x/crypto/bcrypt"
+import (
+	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+)
 
 type User struct {
-	ID       int64  `json:"id"`
+	gorm.Model
+	//! TODO: check here the ID may fuckup everything here
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"-"`
@@ -25,4 +31,16 @@ func (user *User) CheckPassword(providedPassword string) error {
 		return err
 	}
 	return nil
+}
+
+func (user *User) BeforeCreate(tx *gorm.DB) (err error) {
+	fmt.Println("BeforeCreate: Hashing password before creating new user")
+	user.HashPassword()
+	fmt.Println("BeforeCreate: Password hashing completed")
+	return
+}
+
+func (user *User) AfterCreate(tx *gorm.DB) (err error) {
+	fmt.Println("AfterCreate: New user created with ID", user.ID)
+	return
 }

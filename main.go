@@ -16,7 +16,7 @@ func main() {
 		log.Fatal("Failed to get connection string from environment", err)
 	}
 	database.Connect(connectionString)
-	defer database.Instance.Close()
+	defer database.Disconnect()
 	r := router.Router()
 	fmt.Println("Starting server on the port 8080...")
 

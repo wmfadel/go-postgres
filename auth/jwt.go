@@ -12,13 +12,13 @@ import (
 var jwtKey = []byte("supersecretkey")
 
 type JWTClaim struct {
-	UserId int64  `json:"userid"`
+	UserId uint   `json:"userid"`
 	Name   string `json:"name"`
 	Email  string `json:"email"`
 	jwt.StandardClaims
 }
 
-func GenerateJWT(userid int64, name string, email string) (tokenString string, expiresAt int64, err error) {
+func GenerateJWT(userid uint, name string, email string) (tokenString string, expiresAt int64, err error) {
 	tokenDuration, err := utils.GetJWTExpiaryTime()
 	if err != nil {
 		tokenDuration = 1

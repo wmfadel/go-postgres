@@ -71,7 +71,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call the getUser function with user id to retrieve a single user
-	user, err := UserService.GetUser(int64(id))
+	user, err := UserService.GetUser(uint(id))
 	var res models.Response
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -107,7 +107,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// call the getUser function with user id to retrieve a single user
-	_, err = UserService.DeleteUser(int64(id))
+	deletedUser, err := UserService.DeleteUser(int64(id))
 	var res models.Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -118,7 +118,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 		res = models.Response{
-			Data:    id,
+			Data:    deletedUser,
 			Message: "User Deleted",
 		}
 	}
@@ -154,15 +154,23 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Unable to decode the request body.  %v", err)
 	}
 
+	if user.Password != "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(models.RequestError{
+			StatusCode: http.StatusBadRequest,
+			Err:        "cannot update password using this endpoint",
+		})
+		return
+	}
 	// call update user to update the user
-	updatedRows := UserService.UpdateUser(int64(id), user)
+	updatedUser := UserService.UpdateUser(int64(id), user)
 
 	// format the message string
-	msg := fmt.Sprintf("User updated successfully. Total rows/record affected %v", updatedRows)
+	msg := "User updated successfully."
 
 	// format the response message
 	res := models.Response{
-		Data:    int64(id),
+		Data:    updatedUser,
 		Message: msg,
 	}
 
